@@ -12,52 +12,44 @@ main :: proc() {
     num_1 := os.args[1]
     num_2 := os.args[2]
 
-    karatsuba(num_1, num_2)
+    result := int(karatsuba(num_1, num_2))
 }
 
 size_base10 :: proc(num: f64) -> f64 {
     return math.floor(math.log10(num)) + 1
 }
 
-split_num_string :: proc(num_string: [?]string, index_to_split_at : int) -> (string, string) {
-    num_1_slice := utf8.string_to_runes(num_string)
-    
-    first_part := num_1_slice[:index_to_split_at]
-    second_part := num_1_slice[index_to_split_at:]
-
-    first_part_string := strings.concatenate()
-
-
-    return first_part
+num_to_string :: proc(number: int) -> string {
+    initial_buffer: [64]byte
+    result := strconv.itoa(initial_buffer[:], number)
+    output := strings.clone_from_bytes(initial_buffer[:])
+    return output
 }
 
-
-// x * y = 10^(n) * ac + 10^(n/2) * (ad + bc) + bd
-// Recursively Compute: 
-//  1) ac
-//  2) bd
-//  3) (a+b)(c+d) 
-// Gauss Trick = 3 - 1- 2 --> ad+bc
-
-karatsuba :: proc(num_1: string, num_2: string) -> u64 {
-    int_1, ok_1 := strconv.parse_u64(os.args[1])
-    int_2, ok_2 := strconv.parse_u64(os.args[2])
+karatsuba :: proc(num_1: string, num_2: string) -> f64 {
+    number_1, ok_1 := strconv.parse_f64(num_1)
+    number_2, ok_2 := strconv.parse_f64(num_2)
     
-    if int_1 < 10 || int_2 < 10 {
-        return int_1 * int_2
+    if number_1 < 10 || number_2 < 10 {
+        return number_1 * number_2
     }
 
-    m := max(size_base10(f64(int_1)), size_base10(f64(int_2)))
-    m2 := u64(math.floor(m / 2))
-
-    num_1_length := len(num_1)
-    num_2_length := len(num_2)
-
-    num_1_numbers := strings.split(num_1, "")
-    num_2_numbers := strings.split(num_2, "")
+    n := max(size_base10(number_1), size_base10(number_2))
+    n_half := f64(math.ceil(n / 2))
+    modulus := int(math.pow_f64(10, n_half))
     
-    split_num_string(num_1_numbers)
+    a := math.floor(number_1 / math.pow_f64(10, n_half))
+    b := f64(int(number_1) % modulus)
+    c := math.floor(number_2 / math.pow_f64(10, n_half))
+    d := f64(int(number_2) % modulus)
 
+    a_plus_b_string := num_to_string(int(a + b))
+    c_plus_d_string := num_to_string(int(c + d))
 
-    return 0
+    ac := karatsuba(num_to_string(int(a)), num_to_string(int(c)))
+    bd := karatsuba(num_to_string(int(b)), num_to_string(int(d)))
+    ad_plus_bc := karatsuba(a_plus_b_string, c_plus_d_string) - bd - ac
+
+    result := (math.pow_f64(10, n_half * 2) * ac) + (math.pow_f64(10, n_half) * ad_plus_bc) + bd    
+    return result
 }
